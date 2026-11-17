@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Istanbul & Cappadocia · Accesso al viaggio</title>
+<meta name="description" content="Il diario del nostro viaggio. Inserisci la password del gruppo per entrare.">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#102636">
+<meta property="og:type" content="website"><meta property="og:title" content="Istanbul & Cappadocia · Il nostro viaggio">
+<meta property="og:description" content="Un viaggio da condividere. Apri il link e inserisci la password del gruppo.">
+<meta property="og:image" content="https://mimmol99.github.io/viaggio-istanbul-2026/social-preview.png">
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#153044;background:#102636}*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:32px 20px;background:radial-gradient(ellipse at 80% 20%,#31555166,transparent 60%),#102636}body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:linear-gradient(#8ba79b20 1px,transparent 1px),linear-gradient(90deg,#8ba79b20 1px,transparent 1px);background-size:68px 68px}.access-card{position:relative;width:min(100%,440px);padding:36px;background:#f8faf7;border:1px solid #cedbd3;border-radius:26px;box-shadow:0 24px 90px #0004}.mark{width:48px;height:48px;border-radius:15px;background:#e7efe8;display:grid;place-items:center;color:#29746b;margin-bottom:22px}.mark svg{width:25px;height:25px}.eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#488174;font-weight:700;margin:0 0 12px}h1{font-size:clamp(30px,8vw,42px);line-height:1.08;letter-spacing:-.055em;margin:0 0 16px;font-weight:800}h1 span{color:#b4853a}.intro{font-size:14px;line-height:1.65;color:#627380;margin:0 0 28px}label{font-size:12px;font-weight:650;display:block;margin-bottom:9px}.password-wrap{position:relative}input{font:16px system-ui;width:100%;border:1px solid #bfcfc7;border-radius:12px;padding:14px 66px 14px 14px;color:#153044;background:white}input:focus{outline:2px solid #488174;outline-offset:2px}.show{position:absolute;right:6px;top:7px;background:transparent;border:0;color:#376b63;font-size:11px;font-weight:650;padding:10px;cursor:pointer}.enter{width:100%;margin-top:14px;border:0;border-radius:12px;padding:14px;font:650 14px system-ui;background:#1f5f56;color:white;cursor:pointer;transition:background .15s}.enter:hover{background:#154a43}.enter:disabled{opacity:.6;cursor:wait}button:focus-visible{outline:2px solid #b4853a;outline-offset:3px}.feedback{font-size:12px;color:#a74432;line-height:1.5;min-height:18px;margin:12px 0 0}.note{margin:18px 0 0;font-size:11px;color:#7a8a91;text-align:center}.route{position:absolute;inset:auto -40px -40px auto;font-size:150px;color:#bad2c20a;pointer-events:none;transform:rotate(-20deg)}@media(max-width:430px){.access-card{padding:28px 24px}}
+</style>
+</head>
+<body>
+<main class="access-card">
+<div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></div>
+<p class="eyebrow">Il nostro viaggio, insieme</p>
+<h1>Istanbul <span>&</span><br>Cappadocia</h1>
+<p class="intro">Tutte le tappe, i voli e le idee per il viaggio.<br>Inserisci la password del gruppo per entrare.</p>
+<form id="access-form">
+<label for="trip-password">Password del gruppo</label>
+<div class="password-wrap"><input id="trip-password" name="password" type="password" autocomplete="current-password" required aria-describedby="feedback"><button class="show" id="show-password" type="button" aria-pressed="false">Mostra</button></div>
+<button class="enter" id="enter-button" type="submit">Entra nel viaggio →</button>
+<p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+</form>
+<p class="note">L’accesso resta aperto durante questa sessione.</p>
+<noscript><p>Per aprire il viaggio devi abilitare JavaScript nel browser.</p></noscript>
+</main>
+<script type="module">
+import {derivePasswordKey,decryptWithKey,fromBase64,toBase64} from './crypto.mjs';
+const SESSION='istanbul-trip-access-v1',form=document.getElementById('access-form'),input=document.getElementById('trip-password'),button=document.getElementById('enter-button'),feedback=document.getElementById('feedback'),show=document.getElementById('show-password');
+let packetPromise;
+function readPacket(){return packetPromise??=fetch('./trip.enc.json',{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error('network');return response.json();}).catch(error=>{packetPromise=null;throw error;});}
+window.TripAccess={logout(){try{sessionStorage.removeItem(SESSION);}catch{}location.reload();}};
+function showTrip(html){input.value='';document.open();document.write(html);document.close();}
+show.addEventListener('click',()=>{const visible=input.type==='password';input.type=visible?'text':'password';show.textContent=visible?'Nascondi':'Mostra';show.setAttribute('aria-pressed',String(visible));});
+form.addEventListener('submit',async event=>{
+ event.preventDefault();if(button.disabled)return;
+ feedback.textContent='';button.disabled=true;button.textContent='Apertura del viaggio…';
+ if(!crypto?.subtle){feedback.textContent='Apri il link in un browser aggiornato usando HTTPS.';button.disabled=false;button.textContent='Entra nel viaggio →';return;}
+ let packet;
+ try{packet=await readPacket();}catch{feedback.textContent='Non riesco a caricare il viaggio. Controlla la connessione e riprova.';button.disabled=false;button.textContent='Entra nel viaggio →';return;}
+ try{
+  const key=await derivePasswordKey(input.value,packet),html=await decryptWithKey(packet,key);
+  try{sessionStorage.setItem(SESSION,JSON.stringify({salt:packet.salt,key:toBase64(new Uint8Array(await crypto.subtle.exportKey('raw',key)))}));}catch{}
+  showTrip(html);
+ }catch{feedback.textContent='Password errata. Riprova.';input.select();button.disabled=false;button.textContent='Entra nel viaggio →';}
+});
+(async()=>{
+ let saved;try{saved=JSON.parse(sessionStorage.getItem(SESSION)||'null');}catch{return;}
+ if(!saved)return;
+ button.disabled=true;button.textContent='Apertura del viaggio…';
+ try{const packet=await readPacket();if(saved.salt!==packet.salt)throw new Error('changed');const key=await crypto.subtle.importKey('raw',fromBase64(saved.key),{name:'AES-GCM'},false,['decrypt']);showTrip(await decryptWithKey(packet,key));}
+ catch{try{sessionStorage.removeItem(SESSION);}catch{}button.disabled=false;button.textContent='Entra nel viaggio →';}
+})();
+</script>
+</body></html>
